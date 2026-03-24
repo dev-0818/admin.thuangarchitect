@@ -1,0 +1,197 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState, useTransition } from "react";
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+import {
+  reorderProjectsAction,
+  toggleProjectPublishAction
+} from "@/app/actions";
+import { MaterialIcon } from "@/components/material-icon";
+import { StatusBadge } from "@/components/status-badge";
+import { Project, ProjectCategory } from "@/lib/types";
+import { buildPublicProjectUrl, sentenceCaseCategory } from "@/lib/utils";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80";
+
+type ProjectListBoardProps = {
+  category: ProjectCategory;
+  projects: Project[];
+};
+
+type SortableCardProps = {
+  project: Project;
+  onTogglePublish: (project: Project) => void;
+  isPending: boolean;
+};
+
+function SortableCard({ project, onTogglePublish, isPending }: SortableCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: project.id
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  };
+
+  return (
+    <article
+      className="group flex flex-col gap-4 rounded-sm bg-surface-container p-4 transition hover:bg-surface-bright md:flex-row md:items-center md:justify-between"
+      ref={setNodeRef}
+      style={style}
+    >
+      <div className="flex items-center gap-4 md:gap-6">
+        <button
+          className="cursor-grab text-outline transition hover:text-primary"
+          type="button"
+          {...attributes}
+          {...listeners}
+        >
+          <MaterialIcon className="text-[20px]" name="drag_indicator" />
+        </button>
+        <div className="h-16 w-24 overflow-hidden rounded-sm bg-surface-container-lowest">
+          <img
+            alt={project.title}
+            className="h-full w-full object-cover grayscale transition duration-500 group-hover:grayscale-0"
+            src={project.coverImageUrl ?? project.images[0]?.imageUrl ?? FALLBACK_IMAGE}
+          />
+        </div>
+        <div>
+          <h4 className="font-headline text-lg font-bold tracking-tight text-on-surface">
+            {project.title}
+          </h4>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-outline">
+            {buildPublicProjectUrl(project.category, project.slug)}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 md:gap-8">
+        <StatusBadge published={project.isPublished} />
+        <button
+          className="secondary-button px-4 py-2"
+          disabled={isPending}
+          onClick={() => onTogglePublish(project)}
+          type="button"
+        >
+          <MaterialIcon
+            className="text-[18px]"
+            filled={project.isPublished}
+            name={project.isPublished ? "visibility_off" : "visibility"}
+          />
+          {project.isPublished ? "Unpublish" : "Publish"}
+        </button>
+        <Link className="primary-button px-4 py-2" href={`/projects/${project.id}/edit`}>
+          <MaterialIcon className="text-[18px]" name="edit" />
+          Edit
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+export function ProjectListBoard({ category, projects }: ProjectListBoardProps) {
+  const [items, setItems] = useState(projects);
+  const [message, setMessage] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  const ids = useMemo(() => items.map((project) => project.id), [items]);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    setItems((current) => {
+      const oldIndex = current.findIndex((entry) => entry.id === active.id);
+      const newIndex = current.findIndex((entry) => entry.id === over.id);
+
+      return arrayMove(current, oldIndex, newIndex);
+    });
+  }
+
+  return (
+    <section className="mb-16">
+      <div className="mb-6 flex flex-col gap-4 border-b border-outline-variant/10 pb-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.36em] text-secondary">
+            {category === "komersial" ? "Sector 01" : "Sector 02"}
+          </p>
+          <h3 className="mt-2 font-headline text-4xl font-black tracking-tight text-on-surface">
+            {sentenceCaseCategory(category)}
+          </h3>
+        </div>
+
+        <button
+          className="secondary-button"
+          disabled={isPending}
+          onClick={() => {
+            startTransition(async () => {
+              const result = await reorderProjectsAction({
+                category,
+                ids: items.map((project) => project.id)
+              });
+              setMessage(result);
+            });
+          }}
+          type="button"
+        >
+          <MaterialIcon className="text-[18px]" name="save" />
+          Save Order
+        </button>
+      </div>
+
+      {message ? <p className="mb-4 text-sm text-outline">{message}</p> : null}
+
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {items.map((project) => (
+              <SortableCard
+                isPending={isPending}
+                key={project.id}
+                onTogglePublish={(entry) => {
+                  startTransition(async () => {
+                    const result = await toggleProjectPublishAction(
+                      entry.id,
+                      !entry.isPublished
+                    );
+                    setItems((current) =>
+                      current.map((item) =>
+                        item.id === entry.id
+                          ? { ...item, isPublished: !item.isPublished }
+                          : item
+                      )
+                    );
+                    setMessage(result);
+                  });
+                }}
+                project={project}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </section>
+  );
+}
