@@ -16,6 +16,19 @@ type UpdateSessionResult = {
   user: { email?: string | null } | null;
 };
 
+function clearAuthCookies(request: NextRequest, response: NextResponse) {
+  request.cookies
+    .getAll()
+    .filter((cookie) => cookie.name.includes("auth-token"))
+    .forEach((cookie) => {
+      request.cookies.set(cookie.name, "");
+      response.cookies.set(cookie.name, "", {
+        maxAge: 0,
+        path: "/"
+      });
+    });
+}
+
 export async function updateSession(request: NextRequest) {
   if (!hasSupabaseBrowserEnv()) {
     return {
@@ -55,12 +68,21 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
 
-  return {
-    response,
-    user
-  } satisfies UpdateSessionResult;
+    return {
+      response,
+      user
+    } satisfies UpdateSessionResult;
+  } catch {
+    clearAuthCookies(request, response);
+
+    return {
+      response,
+      user: null
+    } satisfies UpdateSessionResult;
+  }
 }
