@@ -17,6 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import imageCompression from "browser-image-compression";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 
 import { saveProjectAction } from "@/app/actions";
 import { MaterialIcon } from "@/components/material-icon";
@@ -90,6 +91,26 @@ function SortableImageCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function SubmitProjectButton({
+  mode,
+  disabled
+}: {
+  mode: "create" | "edit";
+  disabled: boolean;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button className="primary-button w-full" disabled={disabled || pending} type="submit">
+      <MaterialIcon
+        className={cn("text-[18px]", pending ? "animate-spin" : "")}
+        name={pending ? "progress_activity" : mode === "create" ? "add" : "save"}
+      />
+      {pending ? (mode === "create" ? "Creating Project..." : "Saving Changes...") : mode === "create" ? "Create Project" : "Save Changes"}
+    </button>
   );
 }
 
@@ -433,10 +454,12 @@ export function ProjectEditor({
             </p>
           </div>
 
-          <button className="primary-button w-full" type="submit">
-            <MaterialIcon className="text-[18px]" name={mode === "create" ? "add" : "save"} />
-            {mode === "create" ? "Create Project" : "Save Changes"}
-          </button>
+          <SubmitProjectButton disabled={isUploading} mode={mode} />
+          {isUploading ? (
+            <p className="text-center text-xs uppercase tracking-[0.24em] text-outline">
+              Tunggu upload gambar selesai sebelum menyimpan.
+            </p>
+          ) : null}
         </section>
       </aside>
     </form>

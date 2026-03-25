@@ -26,7 +26,10 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
       <ProjectEditor
         errorMessage={
           params.error === "validation"
-            ? "Cek lagi field wajib: title, slug, category, description, cover image, dan sort order."
+            ? decodeURIComponent(
+                params.message ??
+                  "Cek lagi field wajib: title, slug, category, description, cover image, dan sort order."
+              )
             : params.error === "cover"
               ? "Pilih cover image dari gallery sebelum menyimpan."
               : params.error === "save"

@@ -12,6 +12,7 @@ type EditProjectPageProps = {
     saved?: string;
     build?: string;
     error?: string;
+    message?: string;
   }>;
 };
 
@@ -41,9 +42,16 @@ export default async function EditProjectPage({
       <ProjectEditor
         errorMessage={
           resolvedSearchParams?.error === "validation"
-            ? "Beberapa field masih belum valid. Pastikan semua data inti terisi."
+            ? decodeURIComponent(
+                resolvedSearchParams.message ??
+                  "Beberapa field masih belum valid. Pastikan semua data inti terisi."
+              )
             : resolvedSearchParams?.error === "cover"
               ? "Cover image wajib dipilih sebelum menyimpan."
+              : resolvedSearchParams?.error === "save"
+                ? decodeURIComponent(
+                    resolvedSearchParams.message ?? "Menyimpan project ke database gagal."
+                  )
               : undefined
         }
         mode="edit"

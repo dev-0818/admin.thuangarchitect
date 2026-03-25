@@ -47,6 +47,34 @@ const settingsSchema = z.object({
   googleMapsUrl: z.string().url()
 });
 
+function formatProjectValidationErrors(error: z.ZodError) {
+  return error.issues
+    .map((issue) => {
+      const path = issue.path.join(".");
+
+      switch (path) {
+        case "title":
+          return "Title minimal 2 karakter.";
+        case "slug":
+          return "Slug minimal 2 karakter dan tidak boleh kosong.";
+        case "category":
+          return "Category harus komersial atau residential.";
+        case "description":
+          return "Description minimal 8 karakter.";
+        case "sortOrder":
+          return "Sort order harus angka 0 atau lebih.";
+        case "coverImageUrl":
+          return "Cover image wajib dipilih.";
+        case "images":
+          return "Upload minimal satu gambar project.";
+        default:
+          return issue.message;
+      }
+    })
+    .filter(Boolean)
+    .join(" ");
+}
+
 async function safeTriggerBuild(reason: string) {
   try {
     return await triggerBuild(reason);
@@ -114,7 +142,11 @@ export async function saveProjectAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/projects${projectId ? `/${projectId}/edit` : "/new"}?error=validation`);
+    redirect(
+      `/projects${projectId ? `/${projectId}/edit` : "/new"}?error=validation&message=${encodeURIComponent(
+        formatProjectValidationErrors(parsed.error)
+      )}`
+    );
   }
 
   if (!parsed.data.coverImageUrl) {
