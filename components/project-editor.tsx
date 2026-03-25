@@ -16,11 +16,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import imageCompression from "browser-image-compression";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { saveProjectAction } from "@/app/actions";
 import { MaterialIcon } from "@/components/material-icon";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Project, ProjectImage, ProjectCategory } from "@/lib/types";
 import { cn, sentenceCaseCategory, slugify } from "@/lib/utils";
 
@@ -110,8 +109,10 @@ export function ProjectEditor({
   const [slugTouched, setSlugTouched] = useState(Boolean(project.slug));
   const [uploadMessage, setUploadMessage] = useState("");
   const [isUploading, startUploadTransition] = useTransition();
-  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const sensors = useSensors(useSensor(PointerSensor));
+  const hasSupabaseUploadEnv = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   useEffect(() => {
     if (!slugTouched) {
@@ -308,6 +309,7 @@ export function ProjectEditor({
 
                 startUploadTransition(async () => {
                   const nextImages: ProjectImage[] = [];
+                  setUploadMessage("");
 
                   for (const file of files) {
                     const compressed = await imageCompression(file, {
@@ -318,27 +320,35 @@ export function ProjectEditor({
                     });
 
                     const safeSlug = slug || slugify(title) || `project-${Date.now()}`;
-                    const fileName = `${crypto.randomUUID()}.webp`;
-                    const storagePath = `projects/${safeSlug}/${fileName}`;
-
                     let imageUrl = URL.createObjectURL(compressed);
+                    let storagePath = `projects/${safeSlug}/${crypto.randomUUID()}.webp`;
 
-                    if (supabase) {
-                      const { error } = await supabase.storage
-                        .from("portfolio-images")
-                        .upload(storagePath, compressed, {
-                          cacheControl: "3600",
-                          contentType: "image/webp",
-                          upsert: false
-                        });
+                    if (hasSupabaseUploadEnv) {
+                      const uploadFormData = new FormData();
+                      uploadFormData.append("file", compressed, `${safeSlug}.webp`);
+                      uploadFormData.append("slug", safeSlug);
 
-                      if (error) {
-                        setUploadMessage(error.message);
+                      const response = await fetch("/api/upload", {
+                        method: "POST",
+                        body: uploadFormData
+                      });
+
+                      if (!response.ok) {
+                        const payload = (await response.json().catch(() => null)) as
+                          | { error?: string }
+                          | null;
+
+                        setUploadMessage(payload?.error ?? "Upload image gagal.");
                         continue;
                       }
 
-                      imageUrl = supabase.storage.from("portfolio-images").getPublicUrl(storagePath)
-                        .data.publicUrl;
+                      const payload = (await response.json()) as {
+                        imageUrl: string;
+                        storagePath: string;
+                      };
+
+                      imageUrl = payload.imageUrl;
+                      storagePath = payload.storagePath;
                     } else {
                       setUploadMessage("Mode demo aktif. Isi env Supabase untuk upload sungguhan.");
                     }
