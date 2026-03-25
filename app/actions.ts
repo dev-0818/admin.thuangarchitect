@@ -108,9 +108,10 @@ export async function saveProjectAction(formData: FormData) {
   }
 
   const now = new Date().toISOString();
+  const nextProjectId = existingProject?.id || projectId || crypto.randomUUID();
 
   const project: Project = {
-    id: existingProject?.id || projectId || `project-${crypto.randomUUID()}`,
+    id: nextProjectId,
     title: parsed.data.title.toUpperCase(),
     slug: parsed.data.slug,
     category: parsed.data.category,
