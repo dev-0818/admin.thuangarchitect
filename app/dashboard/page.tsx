@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminShell } from "@/components/admin-shell";
+import { ManualBuildButton } from "@/components/manual-build-button";
 import { StatusBadge } from "@/components/status-badge";
 import { getDashboardStats, listProjects } from "@/lib/data";
 import { formatRelativeTime, sentenceCaseCategory } from "@/lib/utils";
@@ -15,9 +16,12 @@ export default async function DashboardPage() {
   return (
     <AdminShell
       actions={
-        <Link className="secondary-button" href="/projects/new">
-          Add New Project
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <ManualBuildButton />
+          <Link className="secondary-button" href="/projects/new">
+            Add New Project
+          </Link>
+        </div>
       }
       currentPath="/dashboard"
       description="Overview cepat untuk seluruh project portfolio, status publish, dan sinkronisasi rebuild website publik."

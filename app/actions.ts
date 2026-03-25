@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { triggerBuild } from "@/lib/build";
 import {
   getProjectById,
   reorderProjects,
@@ -73,21 +72,6 @@ function formatProjectValidationErrors(error: z.ZodError) {
     })
     .filter(Boolean)
     .join(" ");
-}
-
-async function safeTriggerBuild(reason: string) {
-  try {
-    return await triggerBuild(reason);
-  } catch (error) {
-    return {
-      ok: false,
-      skipped: true,
-      message:
-        error instanceof Error
-          ? `Konten tersimpan, tapi trigger rebuild gagal: ${error.message}`
-          : "Konten tersimpan, tapi trigger rebuild gagal."
-    };
-  }
 }
 
 function parseImages(raw: FormDataEntryValue | null) {
@@ -183,38 +167,34 @@ export async function saveProjectAction(formData: FormData) {
     );
   }
 
-  const buildResult = await safeTriggerBuild("save-project");
-
   revalidatePath("/dashboard");
   revalidatePath("/projects");
   revalidatePath("/settings");
   revalidatePath(`/projects/${project.id}/edit`);
 
-  redirect(
-    `/projects/${project.id}/edit?saved=1&build=${encodeURIComponent(buildResult.message)}`
-  );
+  redirect(`/projects/${project.id}/edit?saved=1&build=${encodeURIComponent("Project berhasil disimpan.")}`);
 }
 
 export async function reorderProjectsAction(payload: ReorderPayload) {
   await ensureAuthorizedAdmin();
   await reorderProjects(payload.category, payload.ids);
-  const buildResult = await safeTriggerBuild("reorder-projects");
 
   revalidatePath("/dashboard");
   revalidatePath("/projects");
 
-  return buildResult.message;
+  return "Urutan project berhasil disimpan.";
 }
 
 export async function toggleProjectPublishAction(projectId: string, isPublished: boolean) {
   await ensureAuthorizedAdmin();
   await setProjectPublished(projectId, isPublished);
-  const buildResult = await safeTriggerBuild("toggle-publish");
 
   revalidatePath("/dashboard");
   revalidatePath("/projects");
 
-  return buildResult.message;
+  return isPublished
+    ? "Project dipublish. Klik Trigger Rebuild di dashboard untuk sinkronkan website publik."
+    : "Project dijadikan draft. Klik Trigger Rebuild di dashboard untuk sinkronkan website publik.";
 }
 
 export async function saveSettingsAction(formData: FormData) {
@@ -241,12 +221,11 @@ export async function saveSettingsAction(formData: FormData) {
   };
 
   await updateSettings(settings);
-  const buildResult = await safeTriggerBuild("save-settings");
 
   revalidatePath("/dashboard");
   revalidatePath("/settings");
 
-  redirect(`/settings?saved=1&build=${encodeURIComponent(buildResult.message)}`);
+  redirect(`/settings?saved=1&build=${encodeURIComponent("Settings berhasil disimpan.")}`);
 }
 
 export async function signOutAction() {
