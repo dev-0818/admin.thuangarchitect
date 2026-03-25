@@ -4,14 +4,15 @@ import { getSettings } from "@/lib/data";
 import { formatTimestamp } from "@/lib/utils";
 
 type SettingsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     saved?: string;
     build?: string;
     error?: string;
-  };
+  }>;
 };
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const params = (await searchParams) ?? {};
   const settings = await getSettings();
 
   return (
@@ -25,12 +26,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </>
       }
     >
-      {searchParams?.saved ? (
+      {params.saved ? (
         <div className="mb-8 rounded-sm border-l-4 border-secondary bg-surface-container-high p-5 text-sm text-on-surface">
-          {decodeURIComponent(searchParams.build ?? "Settings saved.")}
+          {decodeURIComponent(params.build ?? "Settings saved.")}
         </div>
       ) : null}
-      {searchParams?.error === "validation" ? (
+      {params.error === "validation" ? (
         <div className="mb-8 rounded-sm border-l-4 border-error bg-surface-container-high p-5 text-sm text-error">
           Pastikan semua URL dan email valid sebelum menyimpan.
         </div>

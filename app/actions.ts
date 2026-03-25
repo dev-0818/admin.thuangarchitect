@@ -75,7 +75,21 @@ function parseImages(raw: FormDataEntryValue | null) {
   }));
 }
 
+async function ensureAuthorizedAdmin() {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user }
+  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+
+  if (!user?.email || (process.env.ADMIN_EMAIL && user.email !== process.env.ADMIN_EMAIL)) {
+    redirect("/login");
+  }
+
+  return user;
+}
+
 export async function saveProjectAction(formData: FormData) {
+  await ensureAuthorizedAdmin();
   const projectIdValue = formData.get("projectId");
   const projectId = typeof projectIdValue === "string" ? projectIdValue : "";
   const existingProject = projectId ? await getProjectById(projectId) : null;
@@ -127,7 +141,15 @@ export async function saveProjectAction(formData: FormData) {
     }))
   };
 
-  await upsertProject(project);
+  try {
+    await upsertProject(project);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Menyimpan project ke database gagal.";
+    redirect(
+      `/projects${projectId ? `/${projectId}/edit` : "/new"}?error=save&message=${encodeURIComponent(message)}`
+    );
+  }
 
   const buildResult = await safeTriggerBuild("save-project");
 
@@ -142,6 +164,7 @@ export async function saveProjectAction(formData: FormData) {
 }
 
 export async function reorderProjectsAction(payload: ReorderPayload) {
+  await ensureAuthorizedAdmin();
   await reorderProjects(payload.category, payload.ids);
   const buildResult = await safeTriggerBuild("reorder-projects");
 
@@ -152,6 +175,7 @@ export async function reorderProjectsAction(payload: ReorderPayload) {
 }
 
 export async function toggleProjectPublishAction(projectId: string, isPublished: boolean) {
+  await ensureAuthorizedAdmin();
   await setProjectPublished(projectId, isPublished);
   const buildResult = await safeTriggerBuild("toggle-publish");
 
@@ -162,6 +186,7 @@ export async function toggleProjectPublishAction(projectId: string, isPublished:
 }
 
 export async function saveSettingsAction(formData: FormData) {
+  await ensureAuthorizedAdmin();
   const parsed = settingsSchema.safeParse({
     siteTitle: formData.get("siteTitle"),
     tagline: formData.get("tagline"),

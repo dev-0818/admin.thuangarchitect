@@ -3,12 +3,15 @@ import { ProjectEditor } from "@/components/project-editor";
 import { createEmptyProject } from "@/lib/data";
 
 type NewProjectPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string;
-  };
+    message?: string;
+  }>;
 };
 
-export default function NewProjectPage({ searchParams }: NewProjectPageProps) {
+export default async function NewProjectPage({ searchParams }: NewProjectPageProps) {
+  const params = (await searchParams) ?? {};
+
   return (
     <AdminShell
       currentPath="/projects"
@@ -22,10 +25,12 @@ export default function NewProjectPage({ searchParams }: NewProjectPageProps) {
     >
       <ProjectEditor
         errorMessage={
-          searchParams?.error === "validation"
+          params.error === "validation"
             ? "Cek lagi field wajib: title, slug, category, description, cover image, dan sort order."
-            : searchParams?.error === "cover"
+            : params.error === "cover"
               ? "Pilih cover image dari gallery sebelum menyimpan."
+              : params.error === "save"
+                ? decodeURIComponent(params.message ?? "Menyimpan project ke database gagal.")
               : undefined
         }
         mode="create"

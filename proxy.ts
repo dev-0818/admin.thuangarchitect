@@ -23,6 +23,11 @@ export default async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Let non-GET requests reach route handlers/server actions; auth will be re-checked there.
+  if (!["GET", "HEAD"].includes(request.method)) {
+    return response;
+  }
+
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthorizedAdmin = !process.env.ADMIN_EMAIL || user?.email === process.env.ADMIN_EMAIL;
 
