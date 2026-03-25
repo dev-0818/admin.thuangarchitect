@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { signOutAction } from "@/app/actions";
 import { LoadingLinkButton } from "@/components/loading-link-button";
+import { NavigationLoadingOverlay } from "@/components/navigation-loading-overlay";
 import { LogoutForm } from "@/components/logout-form";
 import { ManualBuildButton } from "@/components/manual-build-button";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -38,6 +39,7 @@ export async function AdminShell({
 
   return (
     <div className="min-h-screen bg-background text-on-background">
+      <NavigationLoadingOverlay />
       <aside className="fixed left-0 top-0 hidden h-screen w-72 flex-col bg-surface-container-lowest px-6 py-8 lg:flex">
         <div className="mb-12">
           <p className="font-headline text-xl font-bold tracking-tight text-primary">
@@ -56,7 +58,7 @@ export async function AdminShell({
               <LoadingLinkButton
                 active={isActive}
                 className={cn(
-                  "flex items-center gap-4 px-4 py-3 text-sm transition",
+                  "flex w-full items-center gap-4 px-4 py-3 text-sm transition",
                   isActive
                     ? "border-l-[3px] border-secondary bg-surface-container text-primary"
                     : "text-outline hover:bg-surface-container hover:text-primary"
@@ -111,4 +113,3 @@ export async function AdminShell({
     </div>
   );
 }
-

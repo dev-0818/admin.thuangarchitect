@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   closestCenter,
   DndContext,
@@ -126,8 +126,11 @@ function SortableCard({
           onClick={() => onDelete(project)}
           type="button"
         >
-          <MaterialIcon className="text-[18px]" name={isDeletePending ? "progress_activity" : "delete"} />
-          Delete
+          <MaterialIcon
+            className={isDeletePending ? "animate-spin text-[18px]" : "text-[18px]"}
+            name={isDeletePending ? "progress_activity" : "delete"}
+          />
+          {isDeletePending ? "Deleting..." : "Delete"}
         </button>
         <Link
           className={`primary-button px-4 py-2 ${isBusy ? "pointer-events-none opacity-60" : ""}`}
@@ -156,6 +159,20 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
   const sensors = useSensors(useSensor(PointerSensor));
 
   const ids = useMemo(() => items.map((project) => project.id), [items]);
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setMessage("");
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [message]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -188,14 +205,17 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
           className="secondary-button"
           disabled={Boolean(pendingAction)}
           onClick={() => {
+            setPendingAction(`reorder:${category}`);
             startTransition(async () => {
-              setPendingAction(`reorder:${category}`);
-              const result = await reorderProjectsAction({
-                category,
-                ids: items.map((project) => project.id)
-              });
-              setMessage(result);
-              setPendingAction("");
+              try {
+                const result = await reorderProjectsAction({
+                  category,
+                  ids: items.map((project) => project.id)
+                });
+                setMessage(result);
+              } finally {
+                setPendingAction("");
+              }
             });
           }}
           type="button"
@@ -218,21 +238,24 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                 key={project.id}
                 onOpenEditor={(entry) => setOpeningProjectId(entry.id)}
                 onTogglePublish={(entry) => {
+                  setPendingAction(`publish:${entry.id}`);
                   startTransition(async () => {
-                    setPendingAction(`publish:${entry.id}`);
-                    const result = await toggleProjectPublishAction(
-                      entry.id,
-                      !entry.isPublished
-                    );
-                    setItems((current) =>
-                      current.map((item) =>
-                        item.id === entry.id
-                          ? { ...item, isPublished: !item.isPublished }
-                          : item
-                      )
-                    );
-                    setMessage(result);
-                    setPendingAction("");
+                    try {
+                      const result = await toggleProjectPublishAction(
+                        entry.id,
+                        !entry.isPublished
+                      );
+                      setItems((current) =>
+                        current.map((item) =>
+                          item.id === entry.id
+                            ? { ...item, isPublished: !item.isPublished }
+                            : item
+                        )
+                      );
+                      setMessage(result);
+                    } finally {
+                      setPendingAction("");
+                    }
                   });
                 }}
                 onDelete={(entry) => {
@@ -278,15 +301,18 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                 className="secondary-button border-error/30 px-5 py-3 text-error hover:bg-error/10"
                 disabled={Boolean(pendingAction)}
                 onClick={() => {
+                  setPendingAction(`delete:${projectToDelete.id}`);
                   startTransition(async () => {
-                    setPendingAction(`delete:${projectToDelete.id}`);
-                    const result = await deleteProjectAction(projectToDelete.id);
-                    setItems((current) =>
-                      current.filter((item) => item.id !== projectToDelete.id)
-                    );
-                    setMessage(result);
-                    setProjectToDelete(null);
-                    setPendingAction("");
+                    try {
+                      const result = await deleteProjectAction(projectToDelete.id);
+                      setItems((current) =>
+                        current.filter((item) => item.id !== projectToDelete.id)
+                      );
+                      setMessage(result);
+                      setProjectToDelete(null);
+                    } finally {
+                      setPendingAction("");
+                    }
                   });
                 }}
                 type="button"

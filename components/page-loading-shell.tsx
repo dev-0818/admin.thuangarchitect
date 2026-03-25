@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { MaterialIcon } from "@/components/material-icon";
@@ -41,8 +43,8 @@ export function PageLoadingShell({
               <div
                 className={
                   isActive
-                    ? "flex items-center gap-4 border-l-[3px] border-secondary bg-surface-container px-4 py-3 text-sm text-primary"
-                    : "flex items-center gap-4 px-4 py-3 text-sm text-outline"
+                    ? "flex w-full items-center gap-4 border-l-[3px] border-secondary bg-surface-container px-4 py-3 text-sm text-primary"
+                    : "flex w-full items-center gap-4 px-4 py-3 text-sm text-outline"
                 }
                 key={item.href}
               >
@@ -58,10 +60,7 @@ export function PageLoadingShell({
             <p className="text-xs font-semibold text-primary">Valentine Christella</p>
             <div className="mt-2 h-4 w-40 skeleton-block" />
           </div>
-          <div className="flex items-center gap-4 px-4 py-3 text-left text-sm text-outline">
-            <MaterialIcon className="animate-spin text-[20px]" name="progress_activity" />
-            <span className="font-label">Loading...</span>
-          </div>
+          <div className="h-11 w-full skeleton-block" />
         </div>
       </aside>
 

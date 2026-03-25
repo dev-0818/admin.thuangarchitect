@@ -31,9 +31,23 @@ export function LoadingLinkButton({
 
   return (
     <button
-      className={cn(className, isPending ? "cursor-progress" : "", active ? "" : "")}
+      className={cn(
+        variant === "nav" ? "w-full justify-start text-left" : "",
+        className,
+        isPending ? "cursor-progress" : ""
+      )}
       disabled={isPending}
       onClick={() => {
+        if (active) {
+          return;
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("app:navigation-start", {
+            detail: { href }
+          })
+        );
+
         startTransition(() => {
           router.push(href);
         });
@@ -49,7 +63,7 @@ export function LoadingLinkButton({
           name={isPending ? "progress_activity" : (icon ?? "arrow_forward")}
         />
       ) : null}
-      {isPending ? loadingLabel ?? "Loading..." : children}
+      {variant === "nav" ? children : isPending ? loadingLabel ?? "Loading..." : children}
     </button>
   );
 }

@@ -1,12 +1,26 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { MaterialIcon } from "@/components/material-icon";
 
 export function ManualBuildButton() {
   const [message, setMessage] = useState<string>("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setMessage("");
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [message]);
 
   return (
     <div className="flex flex-col items-end gap-2">
