@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import {
+  deleteProject,
   getProjectById,
   reorderProjects,
   setProjectPublished,
@@ -195,6 +196,17 @@ export async function toggleProjectPublishAction(projectId: string, isPublished:
   return isPublished
     ? "Project dipublish. Klik Trigger Rebuild di dashboard untuk sinkronkan website publik."
     : "Project dijadikan draft. Klik Trigger Rebuild di dashboard untuk sinkronkan website publik.";
+}
+
+export async function deleteProjectAction(projectId: string) {
+  await ensureAuthorizedAdmin();
+  await deleteProject(projectId);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}/edit`);
+
+  return "Project dan seluruh image berhasil dihapus.";
 }
 
 export async function saveSettingsAction(formData: FormData) {

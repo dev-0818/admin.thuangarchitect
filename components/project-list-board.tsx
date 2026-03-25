@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import {
+  deleteProjectAction,
   reorderProjectsAction,
   toggleProjectPublishAction
 } from "@/app/actions";
@@ -38,10 +39,11 @@ type ProjectListBoardProps = {
 type SortableCardProps = {
   project: Project;
   onTogglePublish: (project: Project) => void;
+  onDelete: (project: Project) => void;
   isPending: boolean;
 };
 
-function SortableCard({ project, onTogglePublish, isPending }: SortableCardProps) {
+function SortableCard({ project, onTogglePublish, onDelete, isPending }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: project.id
   });
@@ -97,6 +99,15 @@ function SortableCard({ project, onTogglePublish, isPending }: SortableCardProps
             name={project.isPublished ? "visibility_off" : "visibility"}
           />
           {project.isPublished ? "Unpublish" : "Publish"}
+        </button>
+        <button
+          className="secondary-button border-error/30 px-4 py-2 text-error hover:bg-error/10"
+          disabled={isPending}
+          onClick={() => onDelete(project)}
+          type="button"
+        >
+          <MaterialIcon className="text-[18px]" name="delete" />
+          Delete
         </button>
         <Link className="primary-button px-4 py-2" href={`/projects/${project.id}/edit`}>
           <MaterialIcon className="text-[18px]" name="edit" />
@@ -183,6 +194,21 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                           : item
                       )
                     );
+                    setMessage(result);
+                  });
+                }}
+                onDelete={(entry) => {
+                  if (
+                    !window.confirm(
+                      `Hapus project ${entry.title} beserta semua image di storage? Aksi ini tidak bisa dibatalkan.`
+                    )
+                  ) {
+                    return;
+                  }
+
+                  startTransition(async () => {
+                    const result = await deleteProjectAction(entry.id);
+                    setItems((current) => current.filter((item) => item.id !== entry.id));
                     setMessage(result);
                   });
                 }}

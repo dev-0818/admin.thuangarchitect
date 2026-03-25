@@ -284,6 +284,44 @@ export async function setProjectPublished(id: string, isPublished: boolean) {
   });
 }
 
+export async function deleteProject(id: string) {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    memoryStore.projects = memoryStore.projects.filter((project) => project.id !== id);
+    return;
+  }
+
+  const { data: images, error: imageError } = await supabase
+    .from("project_images")
+    .select("storage_path")
+    .eq("project_id", id);
+
+  if (imageError) {
+    throw new Error(imageError.message);
+  }
+
+  const storagePaths = (images ?? [])
+    .map((image) => image.storage_path)
+    .filter((path): path is string => Boolean(path));
+
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from("portfolio-images")
+      .remove(storagePaths);
+
+    if (storageError) {
+      throw new Error(storageError.message);
+    }
+  }
+
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export function createEmptyProject(): Project {
   const now = new Date().toISOString();
 
