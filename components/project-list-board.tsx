@@ -40,10 +40,19 @@ type SortableCardProps = {
   project: Project;
   onTogglePublish: (project: Project) => void;
   onDelete: (project: Project) => void;
+  onOpenEditor: (project: Project) => void;
+  openingProjectId: string | null;
   isPending: boolean;
 };
 
-function SortableCard({ project, onTogglePublish, onDelete, isPending }: SortableCardProps) {
+function SortableCard({
+  project,
+  onTogglePublish,
+  onDelete,
+  onOpenEditor,
+  openingProjectId,
+  isPending
+}: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: project.id
   });
@@ -109,9 +118,16 @@ function SortableCard({ project, onTogglePublish, onDelete, isPending }: Sortabl
           <MaterialIcon className="text-[18px]" name="delete" />
           Delete
         </button>
-        <Link className="primary-button px-4 py-2" href={`/projects/${project.id}/edit`}>
-          <MaterialIcon className="text-[18px]" name="edit" />
-          Edit
+        <Link
+          className="primary-button px-4 py-2"
+          href={`/projects/${project.id}/edit`}
+          onClick={() => onOpenEditor(project)}
+        >
+          <MaterialIcon
+            className={openingProjectId === project.id ? "animate-spin text-[18px]" : "text-[18px]"}
+            name={openingProjectId === project.id ? "progress_activity" : "edit"}
+          />
+          {openingProjectId === project.id ? "Opening..." : "Edit"}
         </Link>
       </div>
     </article>
@@ -122,6 +138,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
   const [items, setItems] = useState(projects);
   const [message, setMessage] = useState("");
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string>("");
   const [isPending, startTransition] = useTransition();
   const sensors = useSensors(useSensor(PointerSensor));
@@ -185,6 +202,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
               <SortableCard
                 isPending={isPending}
                 key={project.id}
+                onOpenEditor={(entry) => setOpeningProjectId(entry.id)}
                 onTogglePublish={(entry) => {
                   startTransition(async () => {
                     setPendingAction(`publish:${entry.id}`);
@@ -206,6 +224,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                 onDelete={(entry) => {
                   setProjectToDelete(entry);
                 }}
+                openingProjectId={openingProjectId}
                 project={project}
               />
             ))}

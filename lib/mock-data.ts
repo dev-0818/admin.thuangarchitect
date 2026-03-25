@@ -1,5 +1,5 @@
 import { Project, ProjectCategory, SiteSettings } from "@/lib/types";
-import { slugify } from "@/lib/utils";
+import { buildWhatsAppUrlFromPhone, slugify } from "@/lib/utils";
 
 const imagePool = [
   "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1600&q=80",
@@ -84,7 +84,6 @@ export const mockSettings: SiteSettings = {
   email: "contact@thuangarchitect.com",
   phone: "+62 812 3456 7890",
   instagramUrl: "https://instagram.com/thuangarchitect",
-  whatsappUrl: "https://wa.me/6281234567890",
-  googleMapsUrl: "https://maps.google.com",
+  whatsappUrl: buildWhatsAppUrlFromPhone("+62 812 3456 7890"),
   updatedAt: new Date().toISOString()
 };

@@ -31,7 +31,6 @@ export type SiteSettings = {
   phone: string;
   instagramUrl: string;
   whatsappUrl: string;
-  googleMapsUrl: string;
   updatedAt: string;
 };
 

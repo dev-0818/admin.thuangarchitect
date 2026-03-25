@@ -78,6 +78,15 @@ textarea {
   @apply w-full rounded-sm border border-outline-variant/20 bg-surface-container-high px-4 py-4 text-sm text-on-surface outline-none transition-colors placeholder:text-outline focus:border-secondary focus:ring-0;
 }
 
+.field-select {
+  @apply w-full rounded-sm border border-outline-variant/20 bg-surface-container-high px-4 py-3 text-sm text-on-surface outline-none transition-colors focus:border-secondary focus:ring-0;
+}
+
+select option {
+  background: #2a2421;
+  color: #e9e1dd;
+}
+
 .section-card {
   @apply rounded-sm bg-surface-container p-8 md:p-10;
 }

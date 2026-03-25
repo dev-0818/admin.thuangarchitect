@@ -1,5 +1,5 @@
 import { AdminShell } from "@/components/admin-shell";
-import { saveSettingsAction } from "@/app/actions";
+import { SettingsForm } from "@/components/settings-form";
 import { getSettings } from "@/lib/data";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -56,84 +56,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </div>
         </section>
 
-        <form action={saveSettingsAction} className="section-card space-y-7">
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              Studio / Brand Name
-            </label>
-            <input className="field-input" defaultValue={settings.siteTitle} name="siteTitle" />
-          </div>
-
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              Tagline
-            </label>
-            <input className="field-input" defaultValue={settings.tagline} name="tagline" />
-          </div>
-
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              Studio Bio
-            </label>
-            <textarea className="field-textarea min-h-36" defaultValue={settings.bio} name="bio" />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-                Email
-              </label>
-              <input className="field-input" defaultValue={settings.email} name="email" type="email" />
-            </div>
-
-            <div>
-              <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-                Phone / WhatsApp
-              </label>
-              <input className="field-input" defaultValue={settings.phone} name="phone" />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              Instagram URL
-            </label>
-            <input
-              className="field-input"
-              defaultValue={settings.instagramUrl}
-              name="instagramUrl"
-              type="url"
-            />
-          </div>
-
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              WhatsApp URL
-            </label>
-            <input
-              className="field-input"
-              defaultValue={settings.whatsappUrl}
-              name="whatsappUrl"
-              type="url"
-            />
-          </div>
-
-          <div>
-            <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-              Google Maps URL
-            </label>
-            <input
-              className="field-input"
-              defaultValue={settings.googleMapsUrl}
-              name="googleMapsUrl"
-              type="url"
-            />
-          </div>
-
-          <button className="primary-button w-full" type="submit">
-            Save Settings
-          </button>
-        </form>
+        <SettingsForm settings={settings} />
       </div>
     </AdminShell>
   );

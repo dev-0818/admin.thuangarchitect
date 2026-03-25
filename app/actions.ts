@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   deleteProject,
+  getNextProjectSortOrder,
   getProjectById,
   reorderProjects,
   setProjectPublished,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { Project, ProjectImage, ReorderPayload, SiteSettings } from "@/lib/types";
-import { slugify } from "@/lib/utils";
+import { buildWhatsAppUrlFromPhone, slugify } from "@/lib/utils";
 
 const imageSchema = z.object({
   id: z.string().min(1),
@@ -30,7 +31,6 @@ const projectSchema = z.object({
   slug: z.string().min(2),
   category: z.enum(["komersial", "residential"]),
   description: z.string().min(8),
-  sortOrder: z.coerce.number().int().nonnegative(),
   isPublished: z.boolean(),
   coverImageUrl: z.string().nullable(),
   images: z.array(imageSchema)
@@ -42,9 +42,7 @@ const settingsSchema = z.object({
   bio: z.string().min(8),
   email: z.string().email(),
   phone: z.string().min(6),
-  instagramUrl: z.string().url(),
-  whatsappUrl: z.string().url(),
-  googleMapsUrl: z.string().url()
+  instagramUrl: z.string().url()
 });
 
 function formatProjectValidationErrors(error: z.ZodError) {
@@ -61,8 +59,6 @@ function formatProjectValidationErrors(error: z.ZodError) {
           return "Category harus komersial atau residential.";
         case "description":
           return "Description minimal 8 karakter.";
-        case "sortOrder":
-          return "Sort order harus angka 0 atau lebih.";
         case "coverImageUrl":
           return "Cover image wajib dipilih.";
         case "images":
@@ -120,7 +116,6 @@ export async function saveProjectAction(formData: FormData) {
     slug: slugify(String(formData.get("slug") || formData.get("title") || "")),
     category: formData.get("category"),
     description: formData.get("description"),
-    sortOrder: formData.get("sortOrder"),
     isPublished: formData.get("isPublished") === "on",
     coverImageUrl,
     images
@@ -140,6 +135,8 @@ export async function saveProjectAction(formData: FormData) {
 
   const now = new Date().toISOString();
   const nextProjectId = existingProject?.id || projectId || crypto.randomUUID();
+  const nextSortOrder =
+    existingProject?.sortOrder ?? (await getNextProjectSortOrder(parsed.data.category));
 
   const project: Project = {
     id: nextProjectId,
@@ -148,7 +145,7 @@ export async function saveProjectAction(formData: FormData) {
     category: parsed.data.category,
     description: parsed.data.description,
     coverImageUrl: parsed.data.coverImageUrl,
-    sortOrder: parsed.data.sortOrder,
+    sortOrder: nextSortOrder,
     isPublished: parsed.data.isPublished,
     createdAt: existingProject?.createdAt ?? now,
     updatedAt: now,
@@ -217,9 +214,7 @@ export async function saveSettingsAction(formData: FormData) {
     bio: formData.get("bio"),
     email: formData.get("email"),
     phone: formData.get("phone"),
-    instagramUrl: formData.get("instagramUrl"),
-    whatsappUrl: formData.get("whatsappUrl"),
-    googleMapsUrl: formData.get("googleMapsUrl")
+    instagramUrl: formData.get("instagramUrl")
   });
 
   if (!parsed.success) {
@@ -228,7 +223,13 @@ export async function saveSettingsAction(formData: FormData) {
 
   const settings: SiteSettings = {
     id: 1,
-    ...parsed.data,
+    siteTitle: parsed.data.siteTitle,
+    tagline: parsed.data.tagline,
+    bio: parsed.data.bio,
+    email: parsed.data.email,
+    phone: parsed.data.phone,
+    instagramUrl: parsed.data.instagramUrl,
+    whatsappUrl: buildWhatsAppUrlFromPhone(parsed.data.phone),
     updatedAt: new Date().toISOString()
   };
 

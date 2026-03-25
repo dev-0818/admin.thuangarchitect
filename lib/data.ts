@@ -102,7 +102,7 @@ export async function getSettings(): Promise<SiteSettings> {
 
   const { data, error } = await supabase
     .from("site_settings")
-    .select("id,site_title,tagline,bio,email,phone,instagram_url,whatsapp_url,google_maps_url,updated_at")
+    .select("id,site_title,tagline,bio,email,phone,instagram_url,whatsapp_url,updated_at")
     .eq("id", 1)
     .single();
 
@@ -119,9 +119,19 @@ export async function getSettings(): Promise<SiteSettings> {
     phone: data.phone ?? "",
     instagramUrl: data.instagram_url ?? "",
     whatsappUrl: data.whatsapp_url ?? "",
-    googleMapsUrl: data.google_maps_url ?? "",
     updatedAt: data.updated_at
   };
+}
+
+export async function getNextProjectSortOrder(category: ProjectCategory) {
+  const projects = await listProjects();
+  const categoryProjects = projects.filter((project) => project.category === category);
+
+  if (categoryProjects.length === 0) {
+    return 0;
+  }
+
+  return Math.max(...categoryProjects.map((project) => project.sortOrder)) + 1;
 }
 
 export async function upsertProject(input: Project) {
@@ -259,7 +269,6 @@ export async function updateSettings(input: SiteSettings) {
     phone: input.phone,
     instagram_url: input.instagramUrl,
     whatsapp_url: input.whatsappUrl,
-    google_maps_url: input.googleMapsUrl,
     updated_at: input.updatedAt
   });
 

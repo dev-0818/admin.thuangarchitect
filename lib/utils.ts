@@ -58,3 +58,35 @@ export function formatRelativeTime(input: string | null) {
 export function buildPublicProjectUrl(category: ProjectCategory, slug: string) {
   return `/portfolio/${category}/${slug}/`;
 }
+
+export function normalizeWhatsAppPhone(input: string) {
+  const digits = input.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("62")) {
+    return digits;
+  }
+
+  if (digits.startsWith("0")) {
+    return `62${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("8")) {
+    return `62${digits}`;
+  }
+
+  return digits;
+}
+
+export function buildWhatsAppUrlFromPhone(input: string) {
+  const phone = normalizeWhatsAppPhone(input);
+
+  if (!phone) {
+    return "";
+  }
+
+  return `https://api.whatsapp.com/send/?phone=${phone}&text&type=phone_number&app_absent=0`;
+}

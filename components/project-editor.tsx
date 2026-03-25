@@ -124,11 +124,9 @@ export function ProjectEditor({
   const [slug, setSlug] = useState(project.slug);
   const [category, setCategory] = useState<ProjectCategory>(project.category);
   const [description, setDescription] = useState(project.description);
-  const [sortOrder, setSortOrder] = useState(project.sortOrder);
   const [isPublished, setIsPublished] = useState(project.isPublished);
   const [images, setImages] = useState<ProjectImage[]>(project.images);
   const [coverImageUrl, setCoverImageUrl] = useState<string>(project.coverImageUrl ?? "");
-  const [slugTouched, setSlugTouched] = useState(Boolean(project.slug));
   const [uploadMessage, setUploadMessage] = useState("");
   const [isUploading, startUploadTransition] = useTransition();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -138,10 +136,8 @@ export function ProjectEditor({
   );
 
   useEffect(() => {
-    if (!slugTouched) {
-      setSlug(slugify(title));
-    }
-  }, [slugTouched, title]);
+    setSlug(slugify(title));
+  }, [title]);
 
   useEffect(() => {
     if (!coverImageUrl && images[0]?.imageUrl) {
@@ -216,15 +212,12 @@ export function ProjectEditor({
               <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
                 URL Slug
               </label>
+              <input name="slug" type="hidden" value={slug} />
               <div className="flex items-center gap-2 text-sm text-outline">
                 <span>/portfolio/{category}/</span>
                 <input
-                  className="field-input"
-                  name="slug"
-                  onChange={(event) => {
-                    setSlugTouched(true);
-                    setSlug(event.target.value);
-                  }}
+                  className="field-input cursor-not-allowed opacity-70"
+                  readOnly
                   value={slug}
                 />
               </div>
@@ -235,35 +228,23 @@ export function ProjectEditor({
               ) : null}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-                  Category
-                </label>
-                <select
-                  className="field-textarea h-12 py-0"
-                  name="category"
-                  onChange={(event) => setCategory(event.target.value as ProjectCategory)}
-                  value={category}
-                >
-                  <option value="komersial">{sentenceCaseCategory("komersial")}</option>
-                  <option value="residential">{sentenceCaseCategory("residential")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
-                  Sort Order
-                </label>
-                <input
-                  className="field-input"
-                  min={0}
-                  name="sortOrder"
-                  onChange={(event) => setSortOrder(Number(event.target.value))}
-                  type="number"
-                  value={sortOrder}
-                />
-              </div>
+            <div>
+              <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em] text-outline">
+                Category
+              </label>
+              <select
+                className="field-select"
+                name="category"
+                onChange={(event) => setCategory(event.target.value as ProjectCategory)}
+                value={category}
+              >
+                <option value="komersial">{sentenceCaseCategory("komersial")}</option>
+                <option value="residential">{sentenceCaseCategory("residential")}</option>
+              </select>
+              <p className="mt-2 text-xs text-outline">
+                Sort order diatur otomatis oleh sistem. Untuk mengubah urutan project, gunakan drag
+                and drop di halaman Projects lalu klik Save Order.
+              </p>
             </div>
 
             <div>

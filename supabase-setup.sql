@@ -36,9 +36,11 @@ create table if not exists site_settings (
   phone text,
   instagram_url text,
   whatsapp_url text,
-  google_maps_url text,
   updated_at timestamptz default now()
 );
+
+alter table site_settings
+drop column if exists google_maps_url;
 
 -- 5. Seed default row
 insert into site_settings (id)
