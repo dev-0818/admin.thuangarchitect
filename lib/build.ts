@@ -10,7 +10,7 @@ export async function triggerBuild(reason: string) {
     return {
       ok: false,
       skipped: true,
-      message: "NETLIFY_BUILD_HOOK_URL belum diisi."
+      message: "Konten tersimpan. Auto rebuild website publik belum diaktifkan."
     };
   }
 
