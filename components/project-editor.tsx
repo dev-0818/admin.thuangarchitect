@@ -16,10 +16,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import imageCompression from "browser-image-compression";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { saveProjectAction } from "@/app/actions";
 import { MaterialIcon } from "@/components/material-icon";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Project, ProjectImage, ProjectCategory } from "@/lib/types";
 import { cn, sentenceCaseCategory, slugify } from "@/lib/utils";
 
@@ -109,6 +110,7 @@ export function ProjectEditor({
   const [slugTouched, setSlugTouched] = useState(Boolean(project.slug));
   const [uploadMessage, setUploadMessage] = useState("");
   const [isUploading, startUploadTransition] = useTransition();
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const sensors = useSensors(useSensor(PointerSensor));
   const hasSupabaseUploadEnv = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -323,14 +325,26 @@ export function ProjectEditor({
                     let imageUrl = URL.createObjectURL(compressed);
                     let storagePath = `projects/${safeSlug}/${crypto.randomUUID()}.webp`;
 
-                    if (hasSupabaseUploadEnv) {
+                    if (hasSupabaseUploadEnv && supabase) {
+                      const {
+                        data: { session }
+                      } = await supabase.auth.getSession();
+
+                      if (!session?.access_token) {
+                        setUploadMessage("Session login tidak ditemukan. Silakan login ulang.");
+                        break;
+                      }
+
                       const uploadFormData = new FormData();
                       uploadFormData.append("file", compressed, `${safeSlug}.webp`);
                       uploadFormData.append("slug", safeSlug);
 
                       const response = await fetch("/api/upload", {
                         method: "POST",
-                        body: uploadFormData
+                        body: uploadFormData,
+                        headers: {
+                          Authorization: `Bearer ${session.access_token}`
+                        }
                       });
 
                       if (!response.ok) {

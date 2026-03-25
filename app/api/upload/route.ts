@@ -5,18 +5,23 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils";
 
 export async function POST(request: Request) {
-  const supabase = await getSupabaseServerClient();
   const adminClient = getSupabaseAdminClient();
+  const authHeader = request.headers.get("authorization");
+  const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const supabase = accessToken ? null : await getSupabaseServerClient();
 
-  if (!supabase || !adminClient) {
+  if (!adminClient) {
     return NextResponse.json({ error: "Supabase belum terkonfigurasi." }, { status: 503 });
   }
 
   const {
-    data: { user }
-  } = await supabase.auth.getUser();
+    data: { user },
+    error: userError
+  } = accessToken
+    ? await adminClient.auth.getUser(accessToken)
+    : await supabase!.auth.getUser();
 
-  if (!user?.email) {
+  if (userError || !user?.email) {
     return NextResponse.json({ error: "Session login tidak ditemukan." }, { status: 401 });
   }
 
