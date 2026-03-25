@@ -1,19 +1,13 @@
 import type { ReactNode } from "react";
 
-import { signOutAction } from "@/app/actions";
-import { LoadingLinkButton } from "@/components/loading-link-button";
-import { LogoutForm } from "@/components/logout-form";
-import { ManualBuildButton } from "@/components/manual-build-button";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
+import { MaterialIcon } from "@/components/material-icon";
 
-type AdminShellProps = {
+type PageLoadingShellProps = {
   currentPath: "/dashboard" | "/projects" | "/settings";
   eyebrow: string;
   title: ReactNode;
   description?: string;
   children: ReactNode;
-  actions?: ReactNode;
 };
 
 const navigation = [
@@ -22,27 +16,18 @@ const navigation = [
   { href: "/settings", label: "Settings", icon: "settings" }
 ] as const;
 
-export async function AdminShell({
+export function PageLoadingShell({
   currentPath,
   eyebrow,
   title,
   description,
-  children,
-  actions
-}: AdminShellProps) {
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user }
-  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-  const userEmail = user?.email ?? process.env.ADMIN_EMAIL ?? "";
-
+  children
+}: PageLoadingShellProps) {
   return (
     <div className="min-h-screen bg-background text-on-background">
       <aside className="fixed left-0 top-0 hidden h-screen w-72 flex-col bg-surface-container-lowest px-6 py-8 lg:flex">
         <div className="mb-12">
-          <p className="font-headline text-xl font-bold tracking-tight text-primary">
-            Studio Admin
-          </p>
+          <p className="font-headline text-xl font-bold tracking-tight text-primary">Studio Admin</p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-outline">
             thuangarchitect.com
           </p>
@@ -53,22 +38,17 @@ export async function AdminShell({
             const isActive = currentPath === item.href;
 
             return (
-              <LoadingLinkButton
-                active={isActive}
-                className={cn(
-                  "flex items-center gap-4 px-4 py-3 text-sm transition",
+              <div
+                className={
                   isActive
-                    ? "border-l-[3px] border-secondary bg-surface-container text-primary"
-                    : "text-outline hover:bg-surface-container hover:text-primary"
-                )}
-                href={item.href}
-                icon={item.icon}
+                    ? "flex items-center gap-4 border-l-[3px] border-secondary bg-surface-container px-4 py-3 text-sm text-primary"
+                    : "flex items-center gap-4 px-4 py-3 text-sm text-outline"
+                }
                 key={item.href}
-                loadingLabel="Opening..."
-                variant="nav"
               >
+                <MaterialIcon className="text-[20px]" name={item.icon} />
                 <span className="font-label">{item.label}</span>
-              </LoadingLinkButton>
+              </div>
             );
           })}
         </nav>
@@ -76,9 +56,12 @@ export async function AdminShell({
         <div className="mt-10 border-t border-outline-variant/10 pt-8">
           <div className="mb-6 px-4">
             <p className="text-xs font-semibold text-primary">Valentine Christella</p>
-            <p className="mt-2 break-all text-xs text-outline">{userEmail}</p>
+            <div className="mt-2 h-4 w-40 skeleton-block" />
           </div>
-          <LogoutForm action={signOutAction as unknown as (formData: FormData) => Promise<void>} />
+          <div className="flex items-center gap-4 px-4 py-3 text-left text-sm text-outline">
+            <MaterialIcon className="animate-spin text-[20px]" name="progress_activity" />
+            <span className="font-label">Loading...</span>
+          </div>
         </div>
       </aside>
 
@@ -100,8 +83,8 @@ export async function AdminShell({
             </div>
 
             <div className="flex flex-col items-start gap-4 xl:items-end">
-              {actions}
-              <ManualBuildButton />
+              <div className="h-12 w-44 skeleton-block" />
+              <div className="h-12 w-44 skeleton-block" />
             </div>
           </div>
         </header>
@@ -111,4 +94,3 @@ export async function AdminShell({
     </div>
   );
 }
-

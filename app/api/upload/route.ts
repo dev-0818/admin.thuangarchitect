@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const adminClient = getSupabaseAdminClient();
@@ -31,15 +30,18 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const file = formData.get("file");
-  const rawSlug = formData.get("slug");
+  const rawProjectId = formData.get("projectId");
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "File upload tidak valid." }, { status: 400 });
   }
 
-  const safeSlug = slugify(typeof rawSlug === "string" ? rawSlug : "") || `project-${Date.now()}`;
+  const safeProjectId =
+    typeof rawProjectId === "string" && rawProjectId.trim().length > 0
+      ? rawProjectId.trim()
+      : crypto.randomUUID();
   const extension = file.name.split(".").pop()?.toLowerCase() || "webp";
-  const storagePath = `projects/${safeSlug}/${crypto.randomUUID()}.${extension}`;
+  const storagePath = `projects/${safeProjectId}/${crypto.randomUUID()}.${extension}`;
 
   const { error } = await adminClient.storage.from("portfolio-images").upload(storagePath, file, {
     cacheControl: "3600",

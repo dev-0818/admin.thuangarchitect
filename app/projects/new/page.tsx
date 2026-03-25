@@ -15,7 +15,7 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
   return (
     <AdminShell
       currentPath="/projects"
-      description="Buat project baru sesuai struktur PRD: title, slug, category, publish state, sort order, dan gallery image."
+      description="Buat project baru sesuai struktur PRD: title, slug, category, publish state, dan gallery image."
       eyebrow="Project Management"
       title={
         <>
@@ -28,7 +28,7 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
           params.error === "validation"
             ? decodeURIComponent(
                 params.message ??
-                  "Cek lagi field wajib: title, slug, category, description, cover image, dan sort order."
+                  "Cek lagi field wajib: title, slug, category, description, dan cover image."
               )
             : params.error === "cover"
               ? "Pilih cover image dari gallery sebelum menyimpan."

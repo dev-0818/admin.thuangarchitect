@@ -42,7 +42,7 @@ type SortableCardProps = {
   onDelete: (project: Project) => void;
   onOpenEditor: (project: Project) => void;
   openingProjectId: string | null;
-  isPending: boolean;
+  pendingAction: string;
 };
 
 function SortableCard({
@@ -51,7 +51,7 @@ function SortableCard({
   onDelete,
   onOpenEditor,
   openingProjectId,
-  isPending
+  pendingAction
 }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: project.id
@@ -61,6 +61,10 @@ function SortableCard({
     transform: CSS.Transform.toString(transform),
     transition
   };
+  const isPublishPending = pendingAction === `publish:${project.id}`;
+  const isDeletePending = pendingAction === `delete:${project.id}`;
+  const isEditorOpening = openingProjectId === project.id;
+  const isBusy = Boolean(pendingAction) && !isEditorOpening;
 
   return (
     <article
@@ -70,7 +74,8 @@ function SortableCard({
     >
       <div className="flex items-center gap-4 md:gap-6">
         <button
-          className="cursor-grab text-outline transition hover:text-primary"
+          className="cursor-grab text-outline transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={Boolean(pendingAction)}
           type="button"
           {...attributes}
           {...listeners}
@@ -98,36 +103,43 @@ function SortableCard({
         <StatusBadge published={project.isPublished} />
         <button
           className="secondary-button px-4 py-2"
-          disabled={isPending}
+          disabled={isBusy}
           onClick={() => onTogglePublish(project)}
           type="button"
         >
           <MaterialIcon
-            className="text-[18px]"
-            filled={project.isPublished}
-            name={project.isPublished ? "visibility_off" : "visibility"}
+            className={isPublishPending ? "animate-spin text-[18px]" : "text-[18px]"}
+            filled={!isPublishPending && project.isPublished}
+            name={
+              isPublishPending
+                ? "progress_activity"
+                : project.isPublished
+                  ? "visibility_off"
+                  : "visibility"
+            }
           />
-          {project.isPublished ? "Unpublish" : "Publish"}
+          {isPublishPending ? "Updating..." : project.isPublished ? "Unpublish" : "Publish"}
         </button>
         <button
           className="secondary-button border-error/30 px-4 py-2 text-error hover:bg-error/10"
-          disabled={isPending}
+          disabled={isBusy}
           onClick={() => onDelete(project)}
           type="button"
         >
-          <MaterialIcon className="text-[18px]" name="delete" />
+          <MaterialIcon className="text-[18px]" name={isDeletePending ? "progress_activity" : "delete"} />
           Delete
         </button>
         <Link
-          className="primary-button px-4 py-2"
+          className={`primary-button px-4 py-2 ${isBusy ? "pointer-events-none opacity-60" : ""}`}
           href={`/projects/${project.id}/edit`}
           onClick={() => onOpenEditor(project)}
+          prefetch={false}
         >
           <MaterialIcon
-            className={openingProjectId === project.id ? "animate-spin text-[18px]" : "text-[18px]"}
-            name={openingProjectId === project.id ? "progress_activity" : "edit"}
+            className={isEditorOpening ? "animate-spin text-[18px]" : "text-[18px]"}
+            name={isEditorOpening ? "progress_activity" : "edit"}
           />
-          {openingProjectId === project.id ? "Opening..." : "Edit"}
+          {isEditorOpening ? "Opening..." : "Edit"}
         </Link>
       </div>
     </article>
@@ -139,8 +151,8 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
   const [message, setMessage] = useState("");
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<string>("");
-  const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState("");
+  const [, startTransition] = useTransition();
   const sensors = useSensors(useSensor(PointerSensor));
 
   const ids = useMemo(() => items.map((project) => project.id), [items]);
@@ -174,7 +186,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
 
         <button
           className="secondary-button"
-          disabled={isPending}
+          disabled={Boolean(pendingAction)}
           onClick={() => {
             startTransition(async () => {
               setPendingAction(`reorder:${category}`);
@@ -188,8 +200,11 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
           }}
           type="button"
         >
-          <MaterialIcon className="text-[18px]" name="save" />
-          Save Order
+          <MaterialIcon
+            className={pendingAction === `reorder:${category}` ? "animate-spin text-[18px]" : "text-[18px]"}
+            name={pendingAction === `reorder:${category}` ? "progress_activity" : "save"}
+          />
+          {pendingAction === `reorder:${category}` ? "Saving..." : "Save Order"}
         </button>
       </div>
 
@@ -200,7 +215,6 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
           <div className="space-y-3">
             {items.map((project) => (
               <SortableCard
-                isPending={isPending}
                 key={project.id}
                 onOpenEditor={(entry) => setOpeningProjectId(entry.id)}
                 onTogglePublish={(entry) => {
@@ -225,6 +239,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                   setProjectToDelete(entry);
                 }}
                 openingProjectId={openingProjectId}
+                pendingAction={pendingAction}
                 project={project}
               />
             ))}
@@ -249,9 +264,9 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
             <div className="mt-8 flex flex-wrap justify-end gap-3">
               <button
                 className="secondary-button"
-                disabled={isPending}
+                disabled={Boolean(pendingAction)}
                 onClick={() => {
-                  if (!isPending) {
+                  if (!pendingAction) {
                     setProjectToDelete(null);
                   }
                 }}
@@ -261,7 +276,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
               </button>
               <button
                 className="secondary-button border-error/30 px-5 py-3 text-error hover:bg-error/10"
-                disabled={isPending}
+                disabled={Boolean(pendingAction)}
                 onClick={() => {
                   startTransition(async () => {
                     setPendingAction(`delete:${projectToDelete.id}`);

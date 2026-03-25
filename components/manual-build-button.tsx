@@ -27,7 +27,11 @@ export function ManualBuildButton() {
         }}
         type="button"
       >
-        <MaterialIcon className="text-[18px]" filled name="bolt" />
+        <MaterialIcon
+          className={isPending ? "animate-spin text-[18px]" : "text-[18px]"}
+          filled={!isPending}
+          name={isPending ? "progress_activity" : "bolt"}
+        />
         {isPending ? "Memicu Rebuild..." : "Trigger Rebuild"}
       </button>
       {message ? (

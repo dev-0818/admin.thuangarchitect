@@ -22,7 +22,7 @@ import { useFormStatus } from "react-dom";
 import { saveProjectAction } from "@/app/actions";
 import { MaterialIcon } from "@/components/material-icon";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { Project, ProjectImage, ProjectCategory } from "@/lib/types";
+import { Project, ProjectCategory, ProjectImage } from "@/lib/types";
 import { cn, sentenceCaseCategory, slugify } from "@/lib/utils";
 
 type ProjectEditorProps = {
@@ -109,7 +109,13 @@ function SubmitProjectButton({
         className={cn("text-[18px]", pending ? "animate-spin" : "")}
         name={pending ? "progress_activity" : mode === "create" ? "add" : "save"}
       />
-      {pending ? (mode === "create" ? "Creating Project..." : "Saving Changes...") : mode === "create" ? "Create Project" : "Save Changes"}
+      {pending
+        ? mode === "create"
+          ? "Creating Project..."
+          : "Saving Changes..."
+        : mode === "create"
+          ? "Create Project"
+          : "Save Changes"}
     </button>
   );
 }
@@ -128,6 +134,7 @@ export function ProjectEditor({
   const [images, setImages] = useState<ProjectImage[]>(project.images);
   const [coverImageUrl, setCoverImageUrl] = useState<string>(project.coverImageUrl ?? "");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [projectFolderKey] = useState(() => project.id || crypto.randomUUID());
   const [isUploading, startUploadTransition] = useTransition();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -165,7 +172,7 @@ export function ProjectEditor({
 
   return (
     <form action={saveProjectAction} className="grid gap-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-      <input name="projectId" type="hidden" value={project.id} />
+      <input name="projectId" type="hidden" value={projectFolderKey} />
       <input name="imagesJson" type="hidden" value={JSON.stringify(images)} />
       <input name="coverImageUrl" type="hidden" value={coverImageUrl} />
 
@@ -323,9 +330,9 @@ export function ProjectEditor({
                       fileType: "image/webp"
                     });
 
-                    const safeSlug = slug || slugify(title) || `project-${Date.now()}`;
+                    const safeSlug = slug || slugify(title) || "untitled-project";
                     let imageUrl = URL.createObjectURL(compressed);
-                    let storagePath = `projects/${safeSlug}/${crypto.randomUUID()}.webp`;
+                    let storagePath = `projects/${projectFolderKey}/${crypto.randomUUID()}.webp`;
 
                     if (hasSupabaseUploadEnv && supabase) {
                       const {
@@ -334,7 +341,7 @@ export function ProjectEditor({
 
                       const uploadFormData = new FormData();
                       uploadFormData.append("file", compressed, `${safeSlug}.webp`);
-                      uploadFormData.append("slug", safeSlug);
+                      uploadFormData.append("projectId", projectFolderKey);
 
                       const headers = new Headers();
                       if (session?.access_token) {

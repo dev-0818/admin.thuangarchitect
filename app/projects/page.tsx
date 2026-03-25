@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { AdminShell } from "@/components/admin-shell";
+import { LoadingLinkButton } from "@/components/loading-link-button";
 import { ProjectListBoard } from "@/components/project-list-board";
 import { listProjects } from "@/lib/data";
 
@@ -12,9 +11,14 @@ export default async function ProjectsPage() {
   return (
     <AdminShell
       actions={
-        <Link className="primary-button" href="/projects/new">
+        <LoadingLinkButton
+          className="primary-button"
+          href="/projects/new"
+          icon="add"
+          loadingLabel="Opening..."
+        >
           Add New Project
-        </Link>
+        </LoadingLinkButton>
       }
       currentPath="/projects"
       description="Kelola seluruh project per kategori, ubah status publish, dan simpan urutan tampilan untuk website publik."

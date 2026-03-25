@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { AdminShell } from "@/components/admin-shell";
+import { LoadingLinkButton } from "@/components/loading-link-button";
 import { StatusBadge } from "@/components/status-badge";
 import { getDashboardStats, listProjects } from "@/lib/data";
 import { formatRelativeTime, sentenceCaseCategory } from "@/lib/utils";
@@ -10,14 +9,21 @@ const FALLBACK_IMAGE =
 
 export default async function DashboardPage() {
   const [stats, projects] = await Promise.all([getDashboardStats(), listProjects()]);
-  const recentProjects = [...projects].slice(0, 4);
+  const recentProjects = [...projects]
+    .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
+    .slice(0, 4);
 
   return (
     <AdminShell
       actions={
-        <Link className="secondary-button" href="/projects/new">
+        <LoadingLinkButton
+          className="secondary-button"
+          href="/projects/new"
+          icon="add"
+          loadingLabel="Opening..."
+        >
           Add New Project
-        </Link>
+        </LoadingLinkButton>
       }
       currentPath="/dashboard"
       description="Overview cepat untuk seluruh project portfolio, status publish, dan sinkronisasi rebuild website publik."
@@ -80,9 +86,13 @@ export default async function DashboardPage() {
               Portfolio Activity
             </h2>
           </div>
-          <Link className="text-sm text-secondary transition hover:text-primary" href="/projects">
+          <LoadingLinkButton
+            className="text-sm text-secondary transition hover:text-primary"
+            href="/projects"
+            loadingLabel="Opening Archive..."
+          >
             View project archive
-          </Link>
+          </LoadingLinkButton>
         </div>
 
         <div className="space-y-4">
@@ -111,9 +121,14 @@ export default async function DashboardPage() {
 
               <div className="flex flex-wrap items-center gap-4 md:gap-8">
                 <StatusBadge published={project.isPublished} />
-                <Link className="secondary-button" href={`/projects/${project.id}/edit`}>
+                <LoadingLinkButton
+                  className="secondary-button"
+                  href={`/projects/${project.id}/edit`}
+                  icon="edit"
+                  loadingLabel="Opening..."
+                >
                   Open Editor
-                </Link>
+                </LoadingLinkButton>
               </div>
             </article>
           ))}

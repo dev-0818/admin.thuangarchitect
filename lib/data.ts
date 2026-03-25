@@ -335,7 +335,7 @@ export function createEmptyProject(): Project {
   const now = new Date().toISOString();
 
   return {
-    id: "",
+    id: crypto.randomUUID(),
     title: "",
     slug: "",
     category: "komersial",
@@ -352,3 +352,4 @@ export function createEmptyProject(): Project {
 export function serializeImages(images: ProjectImage[]) {
   return JSON.stringify(images);
 }
+
