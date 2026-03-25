@@ -121,6 +121,8 @@ function SortableCard({ project, onTogglePublish, onDelete, isPending }: Sortabl
 export function ProjectListBoard({ category, projects }: ProjectListBoardProps) {
   const [items, setItems] = useState(projects);
   const [message, setMessage] = useState("");
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [pendingAction, setPendingAction] = useState<string>("");
   const [isPending, startTransition] = useTransition();
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -158,11 +160,13 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
           disabled={isPending}
           onClick={() => {
             startTransition(async () => {
+              setPendingAction(`reorder:${category}`);
               const result = await reorderProjectsAction({
                 category,
                 ids: items.map((project) => project.id)
               });
               setMessage(result);
+              setPendingAction("");
             });
           }}
           type="button"
@@ -183,6 +187,7 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                 key={project.id}
                 onTogglePublish={(entry) => {
                   startTransition(async () => {
+                    setPendingAction(`publish:${entry.id}`);
                     const result = await toggleProjectPublishAction(
                       entry.id,
                       !entry.isPublished
@@ -195,22 +200,11 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
                       )
                     );
                     setMessage(result);
+                    setPendingAction("");
                   });
                 }}
                 onDelete={(entry) => {
-                  if (
-                    !window.confirm(
-                      `Hapus project ${entry.title} beserta semua image di storage? Aksi ini tidak bisa dibatalkan.`
-                    )
-                  ) {
-                    return;
-                  }
-
-                  startTransition(async () => {
-                    const result = await deleteProjectAction(entry.id);
-                    setItems((current) => current.filter((item) => item.id !== entry.id));
-                    setMessage(result);
-                  });
+                  setProjectToDelete(entry);
                 }}
                 project={project}
               />
@@ -218,6 +212,61 @@ export function ProjectListBoard({ category, projects }: ProjectListBoardProps) 
           </div>
         </SortableContext>
       </DndContext>
+
+      {projectToDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-sm border border-outline-variant/20 bg-surface-container p-8 shadow-ambient">
+            <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-secondary">
+              Confirm Delete
+            </p>
+            <h4 className="mt-3 font-headline text-3xl font-black tracking-tight text-on-surface">
+              Hapus {projectToDelete.title}?
+            </h4>
+            <p className="mt-4 text-sm leading-7 text-on-surface-variant">
+              Semua data project, gallery image di database, dan file image di storage akan
+              dihapus permanen. Aksi ini tidak bisa dibatalkan.
+            </p>
+
+            <div className="mt-8 flex flex-wrap justify-end gap-3">
+              <button
+                className="secondary-button"
+                disabled={isPending}
+                onClick={() => {
+                  if (!isPending) {
+                    setProjectToDelete(null);
+                  }
+                }}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="secondary-button border-error/30 px-5 py-3 text-error hover:bg-error/10"
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    setPendingAction(`delete:${projectToDelete.id}`);
+                    const result = await deleteProjectAction(projectToDelete.id);
+                    setItems((current) =>
+                      current.filter((item) => item.id !== projectToDelete.id)
+                    );
+                    setMessage(result);
+                    setProjectToDelete(null);
+                    setPendingAction("");
+                  });
+                }}
+                type="button"
+              >
+                <MaterialIcon
+                  className={pendingAction === `delete:${projectToDelete.id}` ? "animate-spin text-[18px]" : "text-[18px]"}
+                  name={pendingAction === `delete:${projectToDelete.id}` ? "progress_activity" : "delete"}
+                />
+                {pendingAction === `delete:${projectToDelete.id}` ? "Deleting..." : "Delete Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
