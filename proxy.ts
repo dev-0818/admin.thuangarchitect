@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { buildPublicUrl } from "@/lib/site-url";
 import { hasSupabaseBrowserEnv } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/middleware";
 
@@ -26,11 +27,11 @@ export default async function proxy(request: NextRequest) {
   const isAuthorizedAdmin = !process.env.ADMIN_EMAIL || user?.email === process.env.ADMIN_EMAIL;
 
   if ((!user || !isAuthorizedAdmin) && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(buildPublicUrl(request, "/login"));
   }
 
   if (user && isAuthorizedAdmin && isPublicRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(buildPublicUrl(request, "/dashboard"));
   }
 
   return response;
