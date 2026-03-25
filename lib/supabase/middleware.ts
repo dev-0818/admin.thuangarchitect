@@ -11,9 +11,17 @@ type CookieToSet = {
   options?: CookieOptions;
 };
 
+type UpdateSessionResult = {
+  response: NextResponse;
+  user: { email?: string | null } | null;
+};
+
 export async function updateSession(request: NextRequest) {
   if (!hasSupabaseBrowserEnv()) {
-    return NextResponse.next({ request });
+    return {
+      response: NextResponse.next({ request }),
+      user: null
+    } satisfies UpdateSessionResult;
   }
 
   let response = NextResponse.next({
@@ -47,7 +55,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
 
-  return response;
+  return {
+    response,
+    user
+  } satisfies UpdateSessionResult;
 }

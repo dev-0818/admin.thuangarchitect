@@ -16,22 +16,20 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const response = await updateSession(request);
+  const { response, user } = await updateSession(request);
 
   if (!hasSupabaseBrowserEnv()) {
     return response;
   }
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-  const sessionCookie = request.cookies
-    .getAll()
-    .find((cookie) => cookie.name.includes("auth-token"));
+  const isAuthorizedAdmin = !process.env.ADMIN_EMAIL || user?.email === process.env.ADMIN_EMAIL;
 
-  if (!sessionCookie && !isPublicRoute) {
+  if ((!user || !isAuthorizedAdmin) && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (sessionCookie && isPublicRoute) {
+  if (user && isAuthorizedAdmin && isPublicRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

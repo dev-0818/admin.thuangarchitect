@@ -330,21 +330,20 @@ export function ProjectEditor({
                         data: { session }
                       } = await supabase.auth.getSession();
 
-                      if (!session?.access_token) {
-                        setUploadMessage("Session login tidak ditemukan. Silakan login ulang.");
-                        break;
-                      }
-
                       const uploadFormData = new FormData();
                       uploadFormData.append("file", compressed, `${safeSlug}.webp`);
                       uploadFormData.append("slug", safeSlug);
 
+                      const headers = new Headers();
+                      if (session?.access_token) {
+                        headers.set("Authorization", `Bearer ${session.access_token}`);
+                      }
+
                       const response = await fetch("/api/upload", {
                         method: "POST",
                         body: uploadFormData,
-                        headers: {
-                          Authorization: `Bearer ${session.access_token}`
-                        }
+                        credentials: "include",
+                        headers
                       });
 
                       if (!response.ok) {
