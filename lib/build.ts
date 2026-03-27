@@ -3,14 +3,15 @@ const BUILD_COOLDOWN_MS = 30_000;
 let lastTriggeredAt = 0;
 
 export async function triggerBuild(reason: string) {
-  const hookUrl = process.env.NETLIFY_BUILD_HOOK_URL;
+  const hookUrl = process.env.NETLIFY_BUILD_HOOK_URL?.trim();
   const now = Date.now();
 
   if (!hookUrl) {
     return {
       ok: false,
       skipped: true,
-      message: "Konten tersimpan. Auto rebuild website publik belum diaktifkan."
+      message:
+        "Rebuild belum bisa dipicu karena NETLIFY_BUILD_HOOK_URL belum terbaca di server. Jika baru diubah di .env.local, restart server lalu coba lagi."
     };
   }
 
@@ -42,3 +43,4 @@ export async function triggerBuild(reason: string) {
     message: "Rebuild berhasil dipicu. Website akan terupdate dalam ~1-2 menit."
   };
 }
+
