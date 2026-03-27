@@ -3,7 +3,15 @@ import { LoadingLinkButton } from "@/components/loading-link-button";
 import { ProjectListBoard } from "@/components/project-list-board";
 import { listProjects } from "@/lib/data";
 
-export default async function ProjectsPage() {
+type ProjectsPageProps = {
+  searchParams?: Promise<{
+    saved?: string;
+    message?: string;
+  }>;
+};
+
+export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
+  const params = (await searchParams) ?? {};
   const projects = await listProjects();
   const komersial = projects.filter((project) => project.category === "komersial");
   const residential = projects.filter((project) => project.category === "residential");
@@ -29,6 +37,11 @@ export default async function ProjectsPage() {
         </>
       }
     >
+      {params.saved ? (
+        <div className="mb-8 rounded-sm border-l-4 border-secondary bg-surface-container-high p-5 text-sm text-on-surface">
+          {decodeURIComponent(params.message ?? "Project berhasil disimpan.")}
+        </div>
+      ) : null}
       <ProjectListBoard category="komersial" projects={komersial} />
       <ProjectListBoard category="residential" projects={residential} />
     </AdminShell>

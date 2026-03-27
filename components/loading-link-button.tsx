@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { MaterialIcon } from "@/components/material-icon";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ export function LoadingLinkButton({
   variant = "button"
 }: LoadingLinkButtonProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -38,7 +39,7 @@ export function LoadingLinkButton({
       )}
       disabled={isPending}
       onClick={() => {
-        if (active) {
+        if (active && pathname === href) {
           return;
         }
 

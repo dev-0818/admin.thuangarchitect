@@ -170,7 +170,7 @@ export async function saveProjectAction(formData: FormData) {
   revalidatePath("/settings");
   revalidatePath(`/projects/${project.id}/edit`);
 
-  redirect(`/projects/${project.id}/edit?saved=1&build=${encodeURIComponent("Project berhasil disimpan.")}`);
+  redirect(`/projects?saved=1&message=${encodeURIComponent("Project berhasil disimpan.")}`);
 }
 
 export async function reorderProjectsAction(payload: ReorderPayload) {
@@ -246,3 +246,4 @@ export async function signOutAction() {
   await supabase?.auth.signOut();
   redirect("/login");
 }
+
