@@ -71,9 +71,9 @@ function SortableImageCard({
           <MaterialIcon className="text-[20px]" name="drag_indicator" />
         </button>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="grid gap-2">
           <button
-            className="secondary-button border-white/30 bg-white/10 px-3 py-2 text-[10px] text-white"
+            className="secondary-button w-full border-white/30 bg-white/10 px-3 py-2 text-[10px] text-white"
             onClick={() => onSetCover(image.imageUrl)}
             type="button"
           >
@@ -81,7 +81,7 @@ function SortableImageCard({
             {isCover ? "Cover" : "Set Cover"}
           </button>
           <button
-            className="secondary-button border-white/30 bg-white/10 px-3 py-2 text-[10px] text-white"
+            className="secondary-button w-full border-white/30 bg-white/10 px-3 py-2 text-[10px] text-white"
             onClick={() => onDelete(image.id)}
             type="button"
           >
