@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import imageCompression from "browser-image-compression";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
 import { saveProjectAction } from "@/app/actions";
@@ -38,6 +38,35 @@ type SortableImageCardProps = {
   onDelete: (imageId: string) => void;
   onSetCover: (imageUrl: string) => void;
 };
+
+function requestTemporaryUploadCleanup(storagePaths: string[], transport: "fetch" | "beacon") {
+  const uniquePaths = [...new Set(storagePaths.filter(Boolean))];
+
+  if (uniquePaths.length === 0) {
+    return;
+  }
+
+  const payload = JSON.stringify({ storagePaths: uniquePaths });
+
+  if (
+    transport === "beacon" &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.sendBeacon === "function"
+  ) {
+    navigator.sendBeacon("/api/upload/cleanup", new Blob([payload], { type: "application/json" }));
+    return;
+  }
+
+  void fetch("/api/upload/cleanup", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: payload,
+    credentials: "include",
+    keepalive: true
+  });
+}
 
 function SortableImageCard({
   image,
@@ -134,10 +163,14 @@ export function ProjectEditor({
   const [images, setImages] = useState<ProjectImage[]>(project.images);
   const [coverImageUrl, setCoverImageUrl] = useState<string>(project.coverImageUrl ?? "");
   const [uploadMessage, setUploadMessage] = useState("");
+  const [temporaryUploadPaths, setTemporaryUploadPaths] = useState<string[]>([]);
   const [projectFolderKey] = useState(() => project.id || crypto.randomUUID());
   const [isUploading, startUploadTransition] = useTransition();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const sensors = useSensors(useSensor(PointerSensor));
+  const temporaryUploadPathsRef = useRef<string[]>([]);
+  const isSubmittingRef = useRef(false);
+  const hasTriggeredCleanupRef = useRef(false);
   const hasSupabaseUploadEnv = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
@@ -151,6 +184,44 @@ export function ProjectEditor({
       setCoverImageUrl(images[0].imageUrl);
     }
   }, [coverImageUrl, images]);
+
+  useEffect(() => {
+    temporaryUploadPathsRef.current = temporaryUploadPaths;
+  }, [temporaryUploadPaths]);
+
+  useEffect(() => {
+    function cleanupTemporaryUploads(transport: "fetch" | "beacon") {
+      if (isSubmittingRef.current || hasTriggeredCleanupRef.current) {
+        return;
+      }
+
+      const storagePaths = temporaryUploadPathsRef.current;
+
+      if (storagePaths.length === 0) {
+        return;
+      }
+
+      hasTriggeredCleanupRef.current = true;
+      requestTemporaryUploadCleanup(storagePaths, transport);
+    }
+
+    function handleNavigationStart() {
+      cleanupTemporaryUploads("fetch");
+    }
+
+    function handlePageHide() {
+      cleanupTemporaryUploads("beacon");
+    }
+
+    window.addEventListener("app:navigation-start", handleNavigationStart);
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("app:navigation-start", handleNavigationStart);
+      window.removeEventListener("pagehide", handlePageHide);
+      cleanupTemporaryUploads("fetch");
+    };
+  }, []);
 
   function handleGalleryDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -171,10 +242,18 @@ export function ProjectEditor({
   }
 
   return (
-    <form action={saveProjectAction} className="grid gap-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+    <form
+      action={saveProjectAction}
+      className="grid gap-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]"
+      onSubmit={() => {
+        isSubmittingRef.current = true;
+        hasTriggeredCleanupRef.current = true;
+      }}
+    >
       <input name="projectId" type="hidden" value={projectFolderKey} />
       <input name="imagesJson" type="hidden" value={JSON.stringify(images)} />
       <input name="coverImageUrl" type="hidden" value={coverImageUrl} />
+      <input name="temporaryUploadPathsJson" type="hidden" value={JSON.stringify(temporaryUploadPaths)} />
 
       <div className="space-y-8">
         {statusMessage ? (
@@ -320,6 +399,7 @@ export function ProjectEditor({
 
                 startUploadTransition(async () => {
                   const nextImages: ProjectImage[] = [];
+                  const nextTemporaryUploadPaths: string[] = [];
                   setUploadMessage("");
 
                   for (const file of files) {
@@ -371,6 +451,7 @@ export function ProjectEditor({
 
                       imageUrl = payload.imageUrl;
                       storagePath = payload.storagePath;
+                      nextTemporaryUploadPaths.push(payload.storagePath);
                     } else {
                       setUploadMessage("Mode demo aktif. Isi env Supabase untuk upload sungguhan.");
                     }
@@ -396,6 +477,12 @@ export function ProjectEditor({
 
                     return merged;
                   });
+
+                  if (nextTemporaryUploadPaths.length > 0) {
+                    setTemporaryUploadPaths((current) => [
+                      ...new Set([...current, ...nextTemporaryUploadPaths])
+                    ]);
+                  }
                 });
               }}
               type="file"

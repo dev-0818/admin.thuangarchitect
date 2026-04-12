@@ -226,6 +226,45 @@ export async function upsertProject(input: Project) {
   return input;
 }
 
+export async function removeUnreferencedPortfolioImages(storagePaths: string[]) {
+  const supabase = getSupabaseAdminClient();
+  const uniquePaths = [...new Set(storagePaths.filter(Boolean))];
+
+  if (!supabase || uniquePaths.length === 0) {
+    return [];
+  }
+
+  const { data: referencedImages, error: referencedError } = await supabase
+    .from("project_images")
+    .select("storage_path")
+    .in("storage_path", uniquePaths);
+
+  if (referencedError) {
+    throw new Error(referencedError.message);
+  }
+
+  const referencedPaths = new Set(
+    (referencedImages ?? [])
+      .map((image) => image.storage_path)
+      .filter((path): path is string => Boolean(path))
+  );
+  const removablePaths = uniquePaths.filter((path) => !referencedPaths.has(path));
+
+  if (removablePaths.length === 0) {
+    return [];
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from("portfolio-images")
+    .remove(removablePaths);
+
+  if (storageError) {
+    throw new Error(storageError.message);
+  }
+
+  return removablePaths;
+}
+
 export async function reorderProjects(category: ProjectCategory, ids: string[]) {
   const supabase = getSupabaseAdminClient();
 

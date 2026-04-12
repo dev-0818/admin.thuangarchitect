@@ -8,6 +8,7 @@ import {
   deleteProject,
   getNextProjectSortOrder,
   getProjectById,
+  removeUnreferencedPortfolioImages,
   reorderProjects,
   setProjectPublished,
   updateSettings,
@@ -84,6 +85,24 @@ function parseImages(raw: FormDataEntryValue | null) {
   }));
 }
 
+function parseTemporaryUploadPaths(raw: FormDataEntryValue | null) {
+  if (!raw || typeof raw !== "string") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((path): path is string => typeof path === "string" && path.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 async function ensureAuthorizedAdmin() {
   const supabase = await getSupabaseServerClient();
   const {
@@ -104,6 +123,7 @@ export async function saveProjectAction(formData: FormData) {
   const existingProject = projectId ? await getProjectById(projectId) : null;
 
   const images = parseImages(formData.get("imagesJson"));
+  const temporaryUploadPaths = parseTemporaryUploadPaths(formData.get("temporaryUploadPathsJson"));
   const coverImageFromForm = formData.get("coverImageUrl");
   const coverImageUrl =
     typeof coverImageFromForm === "string" && coverImageFromForm
@@ -122,6 +142,7 @@ export async function saveProjectAction(formData: FormData) {
   });
 
   if (!parsed.success) {
+    await removeUnreferencedPortfolioImages(temporaryUploadPaths);
     redirect(
       `/projects${projectId ? `/${projectId}/edit` : "/new"}?error=validation&message=${encodeURIComponent(
         formatProjectValidationErrors(parsed.error)
@@ -130,6 +151,7 @@ export async function saveProjectAction(formData: FormData) {
   }
 
   if (!parsed.data.coverImageUrl) {
+    await removeUnreferencedPortfolioImages(temporaryUploadPaths);
     redirect(`/projects${projectId ? `/${projectId}/edit` : "/new"}?error=cover`);
   }
 
@@ -158,12 +180,17 @@ export async function saveProjectAction(formData: FormData) {
   try {
     await upsertProject(project);
   } catch (error) {
+    await removeUnreferencedPortfolioImages(temporaryUploadPaths);
     const message =
       error instanceof Error ? error.message : "Menyimpan project ke database gagal.";
     redirect(
       `/projects${projectId ? `/${projectId}/edit` : "/new"}?error=save&message=${encodeURIComponent(message)}`
     );
   }
+
+  try {
+    await removeUnreferencedPortfolioImages(temporaryUploadPaths);
+  } catch {}
 
   revalidatePath("/dashboard");
   revalidatePath("/projects");
